@@ -291,17 +291,16 @@ public class MongoDbClient extends DB {
       Random random = new Random();
       Document toInsert = new Document("_id", UUID.randomUUID().toString());
       toInsert.put("live_id", random.nextInt(1000000) + 1);
-      toInsert.put("stu_id", random.nextInt(1000000) + 2000001);
+      toInsert.put("lecture_id", random.nextInt(1000000) + 2000001);
       //500-20000的随机数
-
       int total = random.nextInt(20000) + 500;
-      toInsert.put("stu_name", "小明"+ total);
-      toInsert.put("stu_py_name", "xiaoming"+ total);
-      toInsert.put("avatar", "xiaomingisateacherstudentasd"+ total);
-      toInsert.put("micup_times", 0);
-      toInsert.put("mic_access", 0);
-      toInsert.put("camera_access", 0);
-      toInsert.put("old_version", 0);
+      toInsert.put("interaction_id", total);
+      toInsert.put("interaction_type", "xiaoming"+ total);
+      toInsert.put("status", "create");
+      toInsert.put("live_start_timne", 1587135000000L + random.nextInt(20000));
+      toInsert.put("start_time", 1587135200000L + random.nextInt(20000));
+      toInsert.put("end_time", 1587135220000L + random.nextInt(20000));
+      toInsert.put("finish_time", 1587135240000L + random.nextInt(20000));
       toInsert.put("create_time", System.currentTimeMillis());
       toInsert.put("update_time", System.currentTimeMillis());
       bulkInserts.add(toInsert);
