@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Main-Class: 
+Class-Path: slf4j-api-1.7.25.jar mongodb-driver-sync-3.11.0.jar mongodb-
+ async-driver-2.0.1.jar bson-3.11.0.jar logback-core-1.1.2.jar logback-c
+ lassic-1.1.2.jar mongodb-driver-legacy-3.11.0.jar snappy-java-1.1.7.1.j
+ ar mongo-java-driver-3.11.0.jar mongodb-driver-core-3.11.0.jar
+

@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -33,7 +33,6 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.InsertManyOptions;
-import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
@@ -46,13 +45,7 @@ import site.ycsb.Status;
 import org.bson.Document;
 import org.bson.types.Binary;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -61,7 +54,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>
  * See the <code>README.md</code> for configuration information.
  * </p>
- * 
+ *
  * @author ypai
  * @see <a href="http://docs.mongodb.org/ecosystem/drivers/java/">MongoDB Inc.
  *      driver</a>
@@ -111,6 +104,10 @@ public class MongoDbClient extends DB {
   /** The bulk inserts pending for the thread. */
   private final List<Document> bulkInserts = new ArrayList<Document>();
 
+
+  private static volatile AtomicInteger liveId = new AtomicInteger(10000000);
+  private static volatile AtomicInteger userId = new AtomicInteger(1000000);
+
   /**
    * Cleanup any state for this DB. Called once per DB instance; there is one DB
    * instance per client thread.
@@ -134,7 +131,7 @@ public class MongoDbClient extends DB {
 
   /**
    * Delete a record from the database.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -236,11 +233,14 @@ public class MongoDbClient extends DB {
     }
   }
 
+
+
+
   /**
    * Insert a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -250,46 +250,64 @@ public class MongoDbClient extends DB {
    * @return Zero on success, a non-zero error code on error. See the {@link DB}
    *         class's description for a discussion of error codes.
    */
+//  @Override
+//  public Status insert(String table, String key,
+//                       Map<String, ByteIterator> values) {
+//    try {
+//      MongoCollection<Document> collection = database.getCollection(table);
+//      Random random = new Random();
+//      int liveIdInteger = liveId.incrementAndGet();
+//
+//      Document toInsert = new Document("_id", UUID.randomUUID().toString());
+//      toInsert.put("live_id", liveIdInteger);
+//      toInsert.put("live_mode", "live");
+//      toInsert.put("type", liveIdInteger % 2 == 0? "shootyell":"showTime");
+//      toInsert.put("template_id", random.nextInt(20000) % (20000) + 500111);
+//      toInsert.put("from", "lecture");
+//      toInsert.put("role", "lecture");
+//      toInsert.put("body", "{小丫么小儿郎。。。。。。。。。。。。。。。。。}");
+//      toInsert.put("state", "START");
+//      toInsert.put("create_time", System.currentTimeMillis());
+//      toInsert.put("update_time", System.currentTimeMillis());
+//      bulkInserts.add(toInsert);
+//      collection.insertMany(bulkInserts, INSERT_UNORDERED);
+//      bulkInserts.clear();
+//      return Status.OK;
+//    } catch (Exception e) {
+//      System.err.println("Exception while trying bulk insert with "
+//          + bulkInserts.size());
+//      e.printStackTrace();
+//      return Status.ERROR;
+//    }
+//  }
+
   @Override
   public Status insert(String table, String key,
-      Map<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
-      Document toInsert = new Document("_id", key);
-      for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
-        toInsert.put(entry.getKey(), entry.getValue().toArray());
-      }
+      int liveIdInteger = liveId.incrementAndGet();
+//      for(int i = 0; i < 100; i++){
+      Random random = new Random();
+      Document toInsert = new Document("_id", UUID.randomUUID().toString());
+      toInsert.put("live_id", random.nextInt(1000000) + 1);
+      toInsert.put("stu_id", random.nextInt(1000000) + 2000001);
+      //500-20000的随机数
 
-      if (batchSize == 1) {
-        if (useUpsert) {
-          // this is effectively an insert, but using an upsert instead due
-          // to current inability of the framework to clean up after itself
-          // between test runs.
-          collection.replaceOne(new Document("_id", toInsert.get("_id")),
-              toInsert, UPDATE_WITH_UPSERT);
-        } else {
-          collection.insertOne(toInsert);
-        }
-      } else {
-        bulkInserts.add(toInsert);
-        if (bulkInserts.size() == batchSize) {
-          if (useUpsert) {
-            List<UpdateOneModel<Document>> updates = 
-                new ArrayList<UpdateOneModel<Document>>(bulkInserts.size());
-            for (Document doc : bulkInserts) {
-              updates.add(new UpdateOneModel<Document>(
-                  new Document("_id", doc.get("_id")),
-                  doc, UPDATE_WITH_UPSERT));
-            }
-            collection.bulkWrite(updates);
-          } else {
-            collection.insertMany(bulkInserts, INSERT_UNORDERED);
-          }
-          bulkInserts.clear();
-        } else {
-          return Status.BATCHED_OK;
-        }
-      }
+      int total = random.nextInt(20000) + 500;
+      toInsert.put("stu_name", "小明"+ total);
+      toInsert.put("stu_py_name", "xiaoming"+ total);
+      toInsert.put("avatar", "xiaomingisateacherstudentasd"+ total);
+      toInsert.put("micup_times", 0);
+      toInsert.put("mic_access", 0);
+      toInsert.put("camera_access", 0);
+      toInsert.put("old_version", 0);
+      toInsert.put("create_time", System.currentTimeMillis());
+      toInsert.put("update_time", System.currentTimeMillis());
+      bulkInserts.add(toInsert);
+//      }
+      collection.insertMany(bulkInserts, INSERT_UNORDERED);
+      bulkInserts.clear();
       return Status.OK;
     } catch (Exception e) {
       System.err.println("Exception while trying bulk insert with "
@@ -297,13 +315,183 @@ public class MongoDbClient extends DB {
       e.printStackTrace();
       return Status.ERROR;
     }
-
   }
 
+//  @Override
+//  public Status insert(String table, String key,
+//                       Map<String, ByteIterator> values) {
+//    try {
+//      MongoCollection<Document> collection = database.getCollection(table);
+//
+//      int liveIdInteger = liveId.incrementAndGet();
+//      Random random = new Random();
+//      for(int i = 0; i < 10; i++){
+//        for(int j = 0; j < 10; j++){
+//          Document toInsert = new Document("_id", UUID.randomUUID().toString());
+//          toInsert.put("live_id", liveIdInteger);
+//          toInsert.put("tutor_id", j + 1000001);
+//          toInsert.put("class_id", "");
+//          toInsert.put("stu_id", j + 2000001);
+//
+//          toInsert.put("interaction_id", i + 5000);
+//          toInsert.put("live_mode", "{\"live-mode\":\"sit\"}");
+//
+//          //500-20000的随机数
+//          int total = random.nextInt(20000) % (20000) + 500;
+//          toInsert.put("template", total);
+//          toInsert.put("interaction_type", "sssss");
+//          toInsert.put("interaction_version", 0);
+//          toInsert.put("body", "{小丫么小儿郎。。。。。。。。。。。。。。。。。}");
+//          toInsert.put("create_time", System.currentTimeMillis());
+//          toInsert.put("update_time", System.currentTimeMillis());
+//          bulkInserts.add(toInsert);
+//        }
+//      }
+//      collection.insertMany(bulkInserts, INSERT_UNORDERED);
+//      bulkInserts.clear();
+//      return Status.OK;
+//    } catch (Exception e) {
+//      System.err.println("Exception while trying bulk insert with "
+//          + bulkInserts.size());
+//      e.printStackTrace();
+//      return Status.ERROR;
+//    }
+//  }
+//
+//  @Override
+//  public Status insert(String table, String key,
+//                       Map<String, ByteIterator> values) {
+//    try {
+//      MongoCollection<Document> collection = database.getCollection(table);
+//
+//      int liveIdInteger = liveId.incrementAndGet();
+//      Random random = new Random();
+//      for(int tutorId = 0; tutorId < 100; tutorId++){
+//        Document toInsert = new Document("_id", UUID.randomUUID().toString());
+//        toInsert.put("live_id", liveIdInteger);
+//        toInsert.put("tutor_id", tutorId);
+//        toInsert.put("cause", "辅导巡场内禁言");
+//        toInsert.put("img_url", "www.baidu.com");
+//        toInsert.put("type", random.nextInt(2) + 1);
+//        toInsert.put("report_id", 123);
+//        toInsert.put("create_time", System.currentTimeMillis());
+//        toInsert.put("status", 1);
+//        toInsert.put("stu_id", tutorId + 2000001);
+//        bulkInserts.add(toInsert);
+//      }
+//      collection.insertMany(bulkInserts, INSERT_UNORDERED);
+//      bulkInserts.clear();
+//      return Status.OK;
+//    } catch (Exception e) {
+//      System.err.println("Exception while trying bulk insert with "
+//          + bulkInserts.size());
+//      e.printStackTrace();
+//      return Status.ERROR;
+//    }
+//  }
+
+//  @Override
+//  public Status insert(String table, String key,
+//                       Map<String, ByteIterator> values) {
+//    try {
+//      MongoCollection<Document> collection = database.getCollection(table);
+//
+//      int liveIdInteger = liveId.incrementAndGet();
+//      Random random = new Random();
+//      int j = random.nextInt(10) + 1;
+//      Document toInsert = new Document("_id", UUID.randomUUID().toString());
+//      toInsert.put("live_id", liveIdInteger);
+//      toInsert.put("tutor_id", random.nextInt(1000) +  1000001);
+//      toInsert.put("big_group_id", 1);
+//      toInsert.put("group_id", j);
+//      toInsert.put("group_name", "斑马组"+j);
+//      toInsert.put("group_motto", "我们齐心协力，一定能取得第一名");
+//      //500-20000的随机数
+//      toInsert.put("team_flag", j);
+//      toInsert.put("room_id", j);
+//      toInsert.put("token", "c3e1852ce11932ea1a8cb972d2be33c5");
+//      toInsert.put("group_type", 0);
+//      toInsert.put("full_pinyin", "banmazu"+j);
+//      toInsert.put("simple_pinyin", "bmz");
+//      toInsert.put("create_time", System.currentTimeMillis());
+//      toInsert.put("update_time", System.currentTimeMillis());
+//      bulkInserts.add(toInsert);
+//
+//      collection.insertMany(bulkInserts, INSERT_UNORDERED);
+//      bulkInserts.clear();
+//      return Status.OK;
+//    } catch (Exception e) {
+//      System.err.println("Exception while trying bulk insert with "
+//          + bulkInserts.size());
+//      e.printStackTrace();
+//      return Status.ERROR;
+//    }
+//  }
+
+//  @Override
+//  public Status insert(String table, String key,
+//                       Map<String, ByteIterator> values) {
+//    try {
+//      MongoCollection<Document> collection = database.getCollection(table);
+//
+//      int liveIdInteger = liveId.incrementAndGet();
+//      Random random = new Random();
+//      Document toInsert = new Document("_id", UUID.randomUUID().toString());
+//      toInsert.put("live_id", liveIdInteger);
+//      toInsert.put("tutor_id", random.nextInt(1000) +  1000001);
+//      toInsert.put("stu_id", random.nextInt(1000) +  1000001);
+//      toInsert.put("arrive_time",  System.currentTimeMillis());
+//      toInsert.put("arrive_status", "attend");
+//      toInsert.put("terminal", "pad");
+//      toInsert.put("create_time", System.currentTimeMillis());
+//      toInsert.put("update_time", System.currentTimeMillis());
+//      bulkInserts.add(toInsert);
+//
+//      collection.insertMany(bulkInserts, INSERT_UNORDERED);
+//      bulkInserts.clear();
+//      return Status.OK;
+//    } catch (Exception e) {
+//      System.err.println("Exception while trying bulk insert with "
+//          + bulkInserts.size());
+//      e.printStackTrace();
+//      return Status.ERROR;
+//    }
+//  }
+
+//  @Override
+//  public Status insert(String table, String key,
+//                       Map<String, ByteIterator> values) {
+//    try {
+//      MongoCollection<Document> collection = database.getCollection(table);
+//
+//      int liveIdInteger = liveId.incrementAndGet();
+//      Random random = new Random();
+//      Document toInsert = new Document("_id", UUID.randomUUID().toString());
+//      toInsert.put("live_id", liveIdInteger);
+//      toInsert.put("tutor_id", random.nextInt(1000) + 1000001);
+//      toInsert.put("big_group_id", 1);
+//      toInsert.put("group_id", random.nextInt(1000) + 1);
+//      toInsert.put("stu_id", random.nextInt(1000) + 2000001);
+//      toInsert.put("status",  200);
+//      toInsert.put("user_type", 0);
+//      toInsert.put("target", 0);
+//      toInsert.put("create_time", System.currentTimeMillis());
+//      toInsert.put("update_time", System.currentTimeMillis());
+//      bulkInserts.add(toInsert);
+//      collection.insertMany(bulkInserts, INSERT_UNORDERED);
+//      bulkInserts.clear();
+//      return Status.OK;
+//    } catch (Exception e) {
+//      System.err.println("Exception while trying bulk insert with "
+//          + bulkInserts.size());
+//      e.printStackTrace();
+//      return Status.ERROR;
+//    }
+//  }
   /**
    * Read a record from the database. Each field/value pair from the result will
    * be stored in a HashMap.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -316,23 +504,18 @@ public class MongoDbClient extends DB {
    */
   @Override
   public Status read(String table, String key, Set<String> fields,
-      Map<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
-      Document query = new Document("_id", key);
 
+      int biglive = (int)(Math.random()*(500000)+ 10000001);
+      Random random = new Random();
+      Document query = new Document();
+
+      query.put("live_id", biglive);
+      query.put("tutor_id", random.nextInt(100) + 2000001);
       FindIterable<Document> findIterable = collection.find(query);
-
-      if (fields != null) {
-        Document projection = new Document();
-        for (String field : fields) {
-          projection.put(field, INCLUDE);
-        }
-        findIterable.projection(projection);
-      }
-
       Document queryResult = findIterable.first();
-
       if (queryResult != null) {
         fillMap(result, queryResult);
       }
@@ -346,7 +529,7 @@ public class MongoDbClient extends DB {
   /**
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param startkey
@@ -363,7 +546,7 @@ public class MongoDbClient extends DB {
    */
   @Override
   public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     MongoCursor<Document> cursor = null;
     try {
       MongoCollection<Document> collection = database.getCollection(table);
@@ -417,7 +600,7 @@ public class MongoDbClient extends DB {
    * Update a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key, overwriting any existing values with the same field name.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -429,7 +612,7 @@ public class MongoDbClient extends DB {
    */
   @Override
   public Status update(String table, String key,
-      Map<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
 
@@ -454,7 +637,7 @@ public class MongoDbClient extends DB {
 
   /**
    * Fills the map with the values from the DBObject.
-   * 
+   *
    * @param resultMap
    *          The map to fill/
    * @param obj

@@ -1,0 +1,6 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Fri Apr 10 12:38:57 CST 2020
+http\://www.allanbank.com/repo/.error=Could not transfer artifact com.allanbank\:mongodb-async-driver\:pom\:2.0.1 from/to allanbank (http\://www.allanbank.com/repo/)\: Connect to www.allanbank.com\:80 [www.allanbank.com/206.210.70.161] failed\: Connection timed out\: connect
+@default-allanbank-http\://www.allanbank.com/repo/.lastUpdated=1586493537640
+http\://maven.aliyun.com/nexus/content/groups/public/.error=
+http\://maven.aliyun.com/nexus/content/groups/public/.lastUpdated=1586488909853
